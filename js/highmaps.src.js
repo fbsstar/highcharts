@@ -1,5 +1,5 @@
 /**
- * @license Highmaps JS v4.2.3-modified (2016-02-24)
+ * @license Highmaps JS v4.2.3-modified (2016-02-26)
  *
  * (c) 2011-2016 Torstein Honsi
  *
@@ -9746,21 +9746,17 @@
                 addEvent(doc, 'mousemove', pointer._onDocumentMouseMove);
             }
 
-            // Crosshair
+            // Crosshair. For each hover point, loop over axes and draw cross if that point
+            // belongs to the axis (#4927).
             each(shared ? kdpoints : [pick(kdpoint[1], hoverPoint)], function (point) {
-                var series = point && point.series;
-                if (series) {
-                    each(['xAxis', 'yAxis', 'colorAxis'], function (coll) {
-                        if (series[coll]) {
-                            series[coll].drawCrosshair(e, point);
-                        }
-                    });
-                }
+                each(chart.axes, function (axis) {
+                    // In case of snap = false, point is undefined, and we draw the crosshair anyway (#5066)
+                    if (!point || point.series[axis.coll] === axis) {
+                        axis.drawCrosshair(e, point);
+                    }
+                });
             });
-
         },
-
-
 
         /**
          * Reset the tracking by hiding the tooltip, the hover series state and the hover point
@@ -9794,7 +9790,7 @@
                 if (hoverPoint) { // #2500
                     hoverPoint.setState(hoverPoint.state, true);
                     each(chart.axes, function (axis) {
-                        if (pick(axis.options.crosshair && axis.options.crosshair.snap, true)) {
+                        if (pick(axis.crosshair && axis.crosshair.snap, true)) {
                             axis.drawCrosshair(null, hoverPoint);
                         }  else {
                             axis.hideCrosshair();
@@ -15105,7 +15101,7 @@
 
                 // Record the options to options.data. If there is an object from before,
                 // use point options, otherwise use raw options. (#4701)
-                seriesOptions.data[i] = isObject(seriesOptions.data[i]) ? point.options : options;
+                seriesOptions.data[i] =  (isObject(seriesOptions.data[i]) && !isArray(seriesOptions.data[i])) ? point.options : options;
 
                 // redraw
                 series.isDirty = series.isDirtyData = true;
